@@ -2,6 +2,10 @@
 
 pragma solidity ^0.8.7;
 
+// Tried all this in Remix. This is a minimalistic example of how upgrading actually works.
+
+// So, from what I understand so far, one use case that I'll need to use assembly is when I want to interact with specific storage slots!
+
 import "@openzeppelin/contracts/proxy/Proxy.sol";
 
 contract SmallProxy is Proxy {
@@ -24,5 +28,37 @@ contract SmallProxy is Proxy {
         assembly {
             implementationAddress := sload(_IMPLEMENTATION_SLOT)
         }
+    }
+
+    function getDataToTransact(
+        uint256 numberToUpdate
+    ) public pure returns (bytes memory) {
+        return abi.encodeWithSignature("setValue(uint256)", numberToUpdate);
+    }
+
+    function readStorage()
+        public
+        view
+        returns (uint256 valueAtStorageSlotZero)
+    {
+        assembly {
+            valueAtStorageSlotZero := sload(0)
+        }
+    }
+}
+
+contract ImplementationA {
+    uint256 public value;
+
+    function setValue(uint256 newValue) public {
+        value = newValue;
+    }
+}
+
+contract ImplementationB {
+    uint256 public value;
+
+    function setValue(uint256 newValue) public {
+        value = newValue + 2;
     }
 }
