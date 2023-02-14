@@ -1,0 +1,31 @@
+const { VERIFICATION_BLOCK_CONFIRMATIONS } = require("../helper-hardhat-config")
+const { network } = require("hardhat")
+
+module.exports = async ({ getNamedAccounts, deployments }) => {
+    const { deploy, log } = deployments
+    const { deployer } = await getNamedAccounts()
+
+    const waitBlockConfirmations = developmentChains.includes(network.name)
+        ? 1
+        : VERIFICATION_BLOCK_CONFIRMATIONS
+
+    log("------------------------------")
+    const box = await deploy("Box", {
+        from: deployer,
+        args: [],
+        waitConfirmations: waitBlockConfirmations,
+        proxy: {
+            // And in this proxy we can add a ton of information:
+            proxyContract: "OpenZeppelinTransparentProxy",
+            // We can tell our hardhat to deploy our box contract behind a proxy that we name.
+            // This proxy contract is called "OpenZeppelinTransparentProxy" and we imported "yarn add --dev @openzeppelin/contracts"
+            viaAdminContract: {
+                // And we're also gonna do a viaAdminContract. Instead of having an admin address for the proxy contract, we're gonna have the proxy contract owned by an admin contract.
+                // Doing it this way is considered a best practise for a number of reasons.
+                // So we need to create a "BoxProxyAdmin" contract to be the admin of our Box
+                name: "BoxProxyAdmin", //name of the admin contract
+                artifact: "BoxProxyAdmin",
+            },
+        },
+    })
+}
