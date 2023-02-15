@@ -1,5 +1,6 @@
-const { VERIFICATION_BLOCK_CONFIRMATIONS } = require("../helper-hardhat-config")
+const { VERIFICATION_BLOCK_CONFIRMATIONS, developmentChains } = require("../helper-hardhat-config")
 const { network } = require("hardhat")
+const { verify } = require("../utils/verify")
 
 module.exports = async ({ getNamedAccounts, deployments }) => {
     const { deploy, log } = deployments
@@ -13,19 +14,28 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     const box = await deploy("Box", {
         from: deployer,
         args: [],
+        log: true, //shows the transaction and deployed address in the logs after deploying
         waitConfirmations: waitBlockConfirmations,
         proxy: {
             // And in this proxy we can add a ton of information:
             proxyContract: "OpenZeppelinTransparentProxy",
             // We can tell our hardhat to deploy our box contract behind a proxy that we name.
-            // This proxy contract is called "OpenZeppelinTransparentProxy" and we imported "yarn add --dev @openzeppelin/contracts"
+            // This proxy contract we're gonna use is "OpenZeppelinTransparentProxy" and we imported "yarn add --dev @openzeppelin/contracts"
             viaAdminContract: {
                 // And we're also gonna do a viaAdminContract. Instead of having an admin address for the proxy contract, we're gonna have the proxy contract owned by an admin contract.
                 // Doing it this way is considered a best practise for a number of reasons.
+                // This admin contract has a lot of functions to upgrade the proxy with a new implementation contract, change the admin etc
                 // So we need to create a "BoxProxyAdmin" contract to be the admin of our Box
                 name: "BoxProxyAdmin", //name of the admin contract
-                artifact: "BoxProxyAdmin",
+                artifact: "BoxProxyAdmin", //assume its the name of the file in the artifacts folder
             },
         },
     })
+
+    if (!developmentChains.includes(network.name) && process.env.ETHERSCAN_API_KEY) {
+        log("Verifying...")
+        await verify(box.address, [])
+    }
 }
+
+// 1:05:36:01 he gives a way to get some templates to work with different types of proxies other than transparent proxies.
